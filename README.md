@@ -6,3 +6,5 @@ This is just a repo filled with my scripts, all the environment stuff is free to
 
 ### Want to use my functions?
 If you want to use a certain effect, please ask about it on Discord: Jevk#0004
+
+For environment stuff, feel free to steal as long as I am credited in the map.
