@@ -1,5 +1,4 @@
-﻿
-Shader "Custom/ChromaticAberration"
+﻿Shader "Custom/ChromaticAberration_VR"
 {
     Properties
     {
@@ -17,8 +16,8 @@ Shader "Custom/ChromaticAberration"
         {
             CGPROGRAM
             
-            #pragma vertex VertexP
-            #pragma fragment FragmentP
+            #pragma vertex vert
+            #pragma fragment frag
 
             #include "UnityCG.cginc"
 
@@ -26,41 +25,44 @@ Shader "Custom/ChromaticAberration"
             float _IntensityY;
             float4 _MainTex_ST;
 
-            struct Interpolators {
-                float4 position : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                UNITY_VERTEX_OUTPUT_STEREO
-            };
-
-            struct VertexData {
-                float4 position : POSITION;
+            struct appdata
+            {
+                float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            Interpolators VertexP (VertexData v) {
-                UNITY_SETUP_INSTANCE_ID(v);
-                UNITY_INITIALIZE_OUTPUT(Interpolators, Interpolators o);
-                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+            struct v2f
+            {
+                float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
 
-                o.position = UnityObjectToClipPos (v.position);
+            v2f vert (appdata v)
+            {
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2f, v2f o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                
+                o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
+
                 return o;
             }
 
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
 
-            float4 FragmentP (Interpolators i) : SV_TARGET {
+            float4 frag (v2f i) : SV_TARGET {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
+                // Ensure UVs are correctly adjusted for stereo rendering
                 float2 uv = UnityStereoTransformScreenSpaceTex(i.uv);
-                float4 color = tex2D(_MainTex, uv);
+                float2 offset = float2(_IntensityX, _IntensityY) * 0.02; // Adjusted for VR clarity
 
-                // move the red channel up-right according to the direction and intensity
-                color.r = tex2D(_MainTex, uv + float2(_IntensityX/50, _IntensityY/50)).r;
-                // move the blue channel down-left according to the direction
-                color.b = tex2D(_MainTex, uv - float2(_IntensityX/50, _IntensityY/50)).b;
-
+                float4 color = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, uv);
+                color.r = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, uv + offset).r; // Red shift up-right
+                color.b = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, uv - offset).b; // Blue shift down-left
 
                 return color;
             }

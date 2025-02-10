@@ -1,5 +1,4 @@
-﻿
-Shader "Custom/distortion"
+﻿Shader "Custom/Distortion_VR"
 {
     Properties
     {
@@ -26,7 +25,6 @@ Shader "Custom/distortion"
             float _Intensity;
             float _Offset;
             float4 _Color;
-            float4 _MainTex_ST;
 
             struct Interpolators {
                 float4 position : SV_POSITION;
@@ -45,7 +43,7 @@ Shader "Custom/distortion"
                 UNITY_INITIALIZE_OUTPUT(Interpolators, Interpolators o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 
-                o.position = UnityObjectToClipPos (v.position);
+                o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;
             }
@@ -53,13 +51,13 @@ Shader "Custom/distortion"
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
 
             float4 FragmentP (Interpolators i) : SV_TARGET {
-                float time = _Time.y;
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
                 float2 uv = UnityStereoTransformScreenSpaceTex(i.uv);
                 uv.x += sin(_Offset * 3.1415) / lerp(100, 1, _Intensity);
                 
-                return tex2D(_MainTex, uv) * _Color;
+                // Use UNITY_SAMPLE_SCREENSPACE_TEXTURE for VR-safe sampling
+                return UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, uv) * _Color;
             }
 
             ENDCG

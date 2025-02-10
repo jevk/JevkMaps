@@ -47,7 +47,7 @@ Shader "Doppels shaders/Models shaders/Best Universe Within 1.02"
         _Src("", int) = 1
         _Dst("", int) = 1
     }
-    CustomEditor "BUWGUI"
+
     SubShader
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent" }
@@ -62,10 +62,17 @@ Shader "Doppels shaders/Models shaders/Best Universe Within 1.02"
             #pragma fragment frag
             #include "UnityCG.cginc"
 
+            struct VertexData {
+                float4 position : POSITION;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
             struct v2f
             {
                 float4 p : SV_POSITION;
                 float2 uv : TEXCOORD0;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             uniform sampler2D _MainTex;
@@ -74,11 +81,15 @@ Shader "Doppels shaders/Models shaders/Best Universe Within 1.02"
             uniform int _samples, B;
             uniform float _fs, _fe, _v, _scale, _rb, _rbs, _rbo, _ms, _sms, _mo, _smo, _far, _near, _dbs, _s, _lpow, _lt, _rspeed, _roffset, _disappearfade, _appearfade;
 
-            v2f vert (float4 v : POSITION, float2 uv : TEXCOORD0)
+            v2f vert(VertexData v)
             {
-                v2f o;
-                o.p = UnityObjectToClipPos(v);
-                o.uv = uv;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2f, v2f o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
+                o.p = UnityObjectToClipPos(v.position);
+                o.uv = v.uv;  // Adjust for VR stereo
+
                 return o;
             }
 

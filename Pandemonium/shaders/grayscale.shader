@@ -1,5 +1,4 @@
-﻿
-Shader "Custom/Grayscale"
+﻿Shader "Custom/Grayscale_VR"
 {
     Properties
     {
@@ -24,7 +23,6 @@ Shader "Custom/Grayscale"
 
             float _Intensity;
             float4 _Color;
-            float4 _MainTex_ST;
 
             struct Interpolators {
                 float4 position : SV_POSITION;
@@ -43,7 +41,7 @@ Shader "Custom/Grayscale"
                 UNITY_INITIALIZE_OUTPUT(Interpolators, Interpolators o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-                o.position = UnityObjectToClipPos (v.position);
+                o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;
             }
@@ -54,9 +52,14 @@ Shader "Custom/Grayscale"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
                 float2 uv = UnityStereoTransformScreenSpaceTex(i.uv);
-                float4 color = tex2D(_MainTex, uv);
+                float4 color = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, uv);
 
-                color.xyz = lerp(color.rgb, dot(color.rgb, float3(0.299, 0.587, 0.114)), _Intensity);
+                // Calculate grayscale intensity
+                float grayscale = dot(color.rgb, float3(0.299, 0.587, 0.114));
+
+                // Blend with original color based on intensity
+                color.rgb = lerp(color.rgb, grayscale.xxx, _Intensity);
+
                 return color * _Color;
             }
 

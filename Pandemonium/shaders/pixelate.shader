@@ -23,8 +23,14 @@ Shader "Custom/pixelate"
 
             float _Pixels;
             sampler2D _Line;
-            float4 _MainTex_ST;
+            //float4 _MainTex_ST;
             float4 _MainTex_TexelSize;
+
+            struct VertexData {
+                float4 position : POSITION;
+                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
 
             struct Interpolators {
                 float4 position : SV_POSITION;
@@ -32,11 +38,7 @@ Shader "Custom/pixelate"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            struct VertexData {
-                float4 position : POSITION;
-                float2 uv : TEXCOORD0;
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
+            UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
 
             Interpolators VertexP (VertexData v) {
                 UNITY_SETUP_INSTANCE_ID(v);
@@ -49,8 +51,6 @@ Shader "Custom/pixelate"
                 return o;
             }
 
-            UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
-
             float4 FragmentP (Interpolators i) : SV_TARGET {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
@@ -60,8 +60,10 @@ Shader "Custom/pixelate"
                 float dy = 10 * (1 / _Pixels);
 
                 float2 Coord = float2(dx * floor(uv.x / dx), dy * floor(uv.y / dy));
+
+                fixed4 col = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, Coord);
              
-                return tex2D(_MainTex, Coord);// + sin(_Intensity) * cos(time / r * t) * _Intensity;
+                return col;// + sin(_Intensity) * cos(time / r * t) * _Intensity;
             }
 
             ENDCG

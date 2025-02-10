@@ -1,5 +1,4 @@
-﻿
-Shader "Custom/GaussianBlur"
+﻿Shader "Custom/GaussianBlur"
 { 
     Properties
     {
@@ -12,7 +11,7 @@ Shader "Custom/GaussianBlur"
 
     SubShader
     {
-        Tags {"Queue"="Transparent" "IgnoreProjector"="true" "RenderType"="Transparent"}
+        Tags {"Queue"="Overlay" "RenderType"="Transparent"}
         ZWrite Off Blend SrcAlpha OneMinusSrcAlpha Cull Off
         Pass
         {    
@@ -22,74 +21,68 @@ Shader "Custom/GaussianBlur"
             #pragma fragmentoption ARB_precision_hint_fastest
             #include "UnityCG.cginc"
 
-
-            struct appdata_t
+            // Define appdata_t and v2f
+            struct appdata
             {
-                float4 vertex   : POSITION;
-                float4 color    : COLOR;
-                float2 texcoord : TEXCOORD0;
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
-            };    
+            };
+
             struct v2f
             {
-                half2 texcoord  : TEXCOORD0;
-                float4 vertex   : SV_POSITION;
-                fixed4 color    : COLOR;
+                float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            float radius;
-            float resolution;
-
-            //the direction of our blur
-            //hstep (1.0, 0.0) -> x-axis blur
-            //vstep(0.0, 1.0) -> y-axis blur
-            //for example horizontaly blur equal:
-            //float hstep = 1;
-            //float vstep = 0;
-            float hstep;
-            float vstep;
-
-            v2f vert(appdata_t IN)
+            v2f vert (appdata v)
             {
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_OUTPUT(v2f, v2f o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 
-                o.vertex = UnityObjectToClipPos(IN.vertex);
-                o.texcoord = IN.texcoord;
-                o.color = IN.color;
+                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.uv = v.uv;
+
                 return o;
             }
 
-			half4 _MainTex_ST;
+            float radius;
+            float resolution;
 
+            float hstep;
+            float vstep;
+
+            half4 _MainTex_ST;
             UNITY_DECLARE_SCREENSPACE_TEXTURE(_MainTex);
 
             float4 frag(v2f i) : COLOR
             {    
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-                float2 uv = UnityStereoTransformScreenSpaceTex(i.texcoord);
+                float2 uv = UnityStereoTransformScreenSpaceTex(i.uv);
                 float4 sum = float4(0.0, 0.0, 0.0, 0.0);
                 float2 tc = uv;
-				// vert
-				
-                //blur radius in pixels
-                float blur = radius/resolution/4;     
 
-                sum += tex2D(_MainTex, float2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.0162162162;
-                sum += tex2D(_MainTex, float2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * 0.0540540541;
-                sum += tex2D(_MainTex, float2(tc.x - 2.0*blur*hstep, tc.y - 2.0*blur*vstep)) * 0.1216216216;
-                sum += tex2D(_MainTex, float2(tc.x - 1.0*blur*hstep, tc.y - 1.0*blur*vstep)) * 0.1945945946;
+                // Calculate dynamic blur based on resolution
+                float blur = radius / (resolution * 4.0); 
 
-                sum += tex2D(_MainTex, float2(tc.x, tc.y)) * 0.2270270270;
+                // Perform the blur effect
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(-4.0, -4.0) * blur) * 0.0162162162;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(-3.0, -3.0) * blur) * 0.0540540541;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(-2.0, -2.0) * blur) * 0.1216216216;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(-1.0, -1.0) * blur) * 0.1945945946;
 
-                sum += tex2D(_MainTex, float2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * 0.1945945946;
-                sum += tex2D(_MainTex, float2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * 0.1216216216;
-                sum += tex2D(_MainTex, float2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * 0.0540540541;
-                sum += tex2D(_MainTex, float2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc) * 0.2270270270;
+
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(1.0, 1.0) * blur) * 0.1945945946;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(2.0, 2.0) * blur) * 0.1216216216;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(3.0, 3.0) * blur) * 0.0540540541;
+                sum += UNITY_SAMPLE_SCREENSPACE_TEXTURE(_MainTex, tc + float2(4.0, 4.0) * blur) * 0.0162162162;
+
                 return float4(sum.rgb, 1);
             }    
+
             ENDCG
         }
     }
